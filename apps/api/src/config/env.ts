@@ -8,6 +8,10 @@ const EnvSchema = z.object({
   PAYPAL_ENV: z.enum(["sandbox", "live"]).default("sandbox"),
   ANTHROPIC_API_KEY: z.string().default(""),
   ARKO_MODEL: z.string().default("claude-opus-5-5"),
+  /** Which model provider powers the agents. "auto" = Claude if ANTHROPIC_API_KEY is set, else Gemini. */
+  AI_PROVIDER: z.enum(["auto", "anthropic", "gemini"]).default("auto"),
+  GEMINI_API_KEY: z.string().default(""),
+  GEMINI_MODEL: z.string().default("gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.8-flash"),
   MAX_ACTION_AMOUNT: z.coerce.number().positive().default(5000),
   DATA_DIR: z.string().default("./data"),
   /** Signs party access keys. Required in production; generated per data dir in development. */

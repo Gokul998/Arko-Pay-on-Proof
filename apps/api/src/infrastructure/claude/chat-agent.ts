@@ -15,7 +15,7 @@ export interface ChatScope {
 }
 
 /** Tool input schemas — validated before anything runs (inputs stream eagerly and are not server-validated). */
-const Inputs = {
+export const Inputs = {
   list_deals: z.object({}),
   get_deal: z.object({ dealId: z.string() }),
   check_paypal_hold: z.object({ dealId: z.string(), milestoneId: z.string() }),
@@ -28,7 +28,7 @@ const Inputs = {
     amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   }),
 } as const;
-type ToolName = keyof typeof Inputs;
+export type ToolName = keyof typeof Inputs;
 
 const BASE_TOOLS: Anthropic.Beta.BetaTool[] = [
   {
@@ -78,6 +78,7 @@ const BASE_TOOLS: Anthropic.Beta.BetaTool[] = [
     },
   },
 ];
+export const TOOL_DEFS = BASE_TOOLS;
 const TOOLS: Anthropic.Beta.BetaTool[] = BASE_TOOLS.map((t) => ({ ...t, eager_input_streaming: true }));
 
 /**
@@ -86,19 +87,20 @@ const TOOLS: Anthropic.Beta.BetaTool[] = BASE_TOOLS.map((t) => ({ ...t, eager_in
  */
 export class ChatAgent {
   constructor(
-    private readonly client: Anthropic,
+    private readonly client: Anthropic | null,
     private readonly model: string,
     private readonly deals: DealService,
   ) {}
 
   async run(req: ChatRequest, scope: ChatScope, emit: (e: ChatEvent) => void, signal?: AbortSignal): Promise<void> {
+    if (!this.client) throw new AppError("NOT_CONFIGURED", "Claude is not configured", 503);
     const messages: Anthropic.Beta.BetaMessageParam[] = [
       ...req.history.map((h) => ({ role: h.role, content: h.content })),
       { role: "user", content: req.message },
     ];
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
-      const stream = this.client.beta.messages.stream(
+      const stream = this.client!.beta.messages.stream(
         {
           model: this.model,
           max_tokens: 16000,
@@ -165,7 +167,8 @@ export class ChatAgent {
     }
   }
 
-  private async execute(
+  /** Run one tool for the caller's scope (shared by every model provider). */
+  async execute(
     name: ToolName,
     input: unknown,
     scope: ChatScope,
@@ -210,7 +213,7 @@ export class ChatAgent {
     }
   }
 
-  private systemPrompt(req: ChatRequest): string {
+  systemPrompt(req: ChatRequest): string {
     return [
       "You are Arko, the AI escrow assistant inside Arko Pay-on-Proof. Client money for freelance milestones is held by PayPal (an authorization) and released only after proof of work and a human approval.",
       `You are talking to the ${req.party}. Today is ${new Date().toISOString().slice(0, 10)}.`,

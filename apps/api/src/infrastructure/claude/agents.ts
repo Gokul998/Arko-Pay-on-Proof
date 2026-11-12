@@ -10,7 +10,7 @@ import type {
   StoredFile,
   VerifierAgent,
 } from "../../application/ports.ts";
-import type { ClaudeStructured } from "./claude-client.ts";
+import type { StructuredLlm } from "./claude-client.ts";
 import { proofBlocks } from "./proof-content.ts";
 
 const UNTRUSTED =
@@ -49,7 +49,7 @@ const DraftSchema = z.object({
 });
 
 export class ClaudeContractAgent implements ContractAgent {
-  constructor(private readonly claude: ClaudeStructured) {}
+  constructor(private readonly claude: StructuredLlm) {}
 
   async draft(source: SourceMaterial, hints: { clientName?: string; freelancerName?: string; currency?: Currency }): Promise<DraftedDeal> {
     const hintText =
@@ -120,7 +120,7 @@ const PlanReviewSchema = z.object({
 });
 
 export class ClaudePlanReviewAgent implements PlanReviewAgent {
-  constructor(private readonly claude: ClaudeStructured) {}
+  constructor(private readonly claude: StructuredLlm) {}
 
   async review(deal: Deal) {
     const plan = [
@@ -184,7 +184,7 @@ const milestoneContext = (deal: Deal, m: Milestone) =>
   ].join("\n");
 
 export class ClaudeVerifierAgent implements VerifierAgent {
-  constructor(private readonly claude: ClaudeStructured) {}
+  constructor(private readonly claude: StructuredLlm) {}
 
   async verify({ deal, milestone, proofs }: { deal: Deal; milestone: Milestone; proofs: StoredFile[] }) {
     const out = await this.claude.parse({
@@ -212,7 +212,7 @@ const MediationSchema = z.object({
 });
 
 export class ClaudeMediatorAgent implements MediatorAgent {
-  constructor(private readonly claude: ClaudeStructured) {}
+  constructor(private readonly claude: StructuredLlm) {}
 
   async mediate({ deal, milestone, proofs }: { deal: Deal; milestone: Milestone; proofs: StoredFile[] }) {
     const statements = milestone.disputeStatements;

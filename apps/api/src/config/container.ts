@@ -10,7 +10,8 @@ import { readSourceDocument } from "../infrastructure/documents/sow-reader.ts";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { ChatAgent } from "../infrastructure/claude/chat-agent.ts";
-import { ClaudeStructured } from "../infrastructure/claude/claude-client.ts";
+import { ClaudeStructured, type StructuredLlm } from "../infrastructure/claude/claude-client.ts";
+import { createGemini, GeminiChatAgent, GeminiStructured } from "../infrastructure/gemini/gemini.ts";
 import { McpPaymentsGateway } from "../infrastructure/mcp/mcp-payments-gateway.ts";
 import {
   openDatabase,
@@ -25,7 +26,8 @@ export interface Container {
   env: Env;
   deals: DealService;
   keys: AccessKeys;
-  chat: () => ChatAgent;
+  chat: () => Pick<ChatAgent, "run">;
+  ai: { provider: "anthropic" | "gemini"; model: string } | null;
   audit: SqliteAuditLog;
   payments: () => PaymentsGateway;
   mcpTools: () => Promise<Array<{ name: string; title?: string; annotations?: unknown }>>;
@@ -46,9 +48,16 @@ export async function buildContainer(env: Env): Promise<Container> {
     : undefined;
   const payments = () => gateway ?? fail("PayPal");
 
-  const anthropic = env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : undefined;
-  const structured = anthropic ? new ClaudeStructured(anthropic, env.ARKO_MODEL) : undefined;
-  const claude = () => structured ?? fail("Claude (ANTHROPIC_API_KEY)");
+  // AI provider: Claude (default) or Gemini, behind the same StructuredLlm / chat interfaces.
+  const provider = aiProvider(env);
+  const anthropic = provider === "anthropic" ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : undefined;
+  const gemini = provider === "gemini" ? createGemini(env.GEMINI_API_KEY) : undefined;
+  const structured: StructuredLlm | undefined = anthropic
+    ? new ClaudeStructured(anthropic, env.ARKO_MODEL)
+    : gemini
+      ? new GeminiStructured(gemini, env.GEMINI_MODEL)
+      : undefined;
+  const claude = () => structured ?? fail("AI agents (set ANTHROPIC_API_KEY or GEMINI_API_KEY)");
 
   const deals = new DealService({
     deals: new SqliteDealRepository(db),
@@ -71,9 +80,20 @@ export async function buildContainer(env: Env): Promise<Container> {
     keys: new AccessKeys(env.APP_SECRET || persistentSecret(env.DATA_DIR)),
     audit,
     payments,
-    chat: () => new ChatAgent(anthropic ?? fail("Claude (ANTHROPIC_API_KEY)"), env.ARKO_MODEL, deals),
+    chat: () => {
+      if (anthropic) return new ChatAgent(anthropic, env.ARKO_MODEL, deals);
+      if (gemini) return new GeminiChatAgent(gemini, env.GEMINI_MODEL, new ChatAgent(null, env.GEMINI_MODEL, deals));
+      return fail("AI agents (set ANTHROPIC_API_KEY or GEMINI_API_KEY)");
+    },
+    ai: provider === "none" ? null : { provider, model: provider === "anthropic" ? env.ARKO_MODEL : env.GEMINI_MODEL },
     mcpTools: async () => (gateway ? gateway.listTools() : []),
   };
+}
+
+function aiProvider(env: Env): "anthropic" | "gemini" | "none" {
+  if (env.AI_PROVIDER === "anthropic") return env.ANTHROPIC_API_KEY ? "anthropic" : "none";
+  if (env.AI_PROVIDER === "gemini") return env.GEMINI_API_KEY ? "gemini" : "none";
+  return env.ANTHROPIC_API_KEY ? "anthropic" : env.GEMINI_API_KEY ? "gemini" : "none";
 }
 
 /** Dev convenience: generate one signing secret per data directory so keys survive restarts. */

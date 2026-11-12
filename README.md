@@ -135,6 +135,8 @@ arko-pay/
 
 ### AI used
 
+**Provider-neutral:** the agents depend on a `StructuredLlm` port, with **Claude** and **Gemini** adapters. Arko runs on either.
+
 - **Claude** (`claude-opus-5-5` by default, configurable with `ARKO_MODEL`) through the official Anthropic TypeScript SDK.
   - Contract, Verifier and Mediator use **structured outputs** (zod schemas) and adaptive thinking. The Verifier and Mediator read **images and PDFs** directly.
   - The chat agent is a **streaming tool-use loop** (SSE to the browser) with input validation on every tool call.
@@ -150,7 +152,7 @@ arko-pay/
 
 ## Run it locally (about 5 minutes)
 
-**Requires** Node.js **22.13+** (it uses the built-in `node:sqlite`), a free PayPal Developer account and an Anthropic API key.
+**Requires** Node.js **22.13+** (it uses the built-in `node:sqlite`), a free PayPal Developer account, and an AI key. Use **either** an Anthropic API key (Claude, the default) **or** a free Google **Gemini** key from <https://aistudio.google.com/apikey>. All agents run behind one provider-neutral interface, and Gemini is used automatically when no Anthropic key is set.
 
 ### 1. Get PayPal Sandbox credentials
 1. Sign in at <https://developer.paypal.com> → **Apps & Credentials** → make sure the **Sandbox** toggle is on.
@@ -160,7 +162,7 @@ arko-pay/
 ### 2. Configure and start
 ```bash
 git clone <this repo> arko-pay && cd arko-pay
-cp .env.example .env        # fill PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, ANTHROPIC_API_KEY
+cp .env.example .env        # fill PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET and ANTHROPIC_API_KEY or GEMINI_API_KEY
 npm install
 npm run dev                 # API on :8787, web on http://localhost:5173
 ```
@@ -216,7 +218,9 @@ Then ask Claude *"check the status of PayPal authorization 0VF5…"*. Tools mark
 |---|---|---|---|
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | ✓ | — | Sandbox app credentials |
 | `PAYPAL_ENV` | | `sandbox` | `live` only with real credentials |
-| `ANTHROPIC_API_KEY` | ✓ | — | |
+| `ANTHROPIC_API_KEY` | one of | — | Claude (default provider) |
+| `GEMINI_API_KEY` | one of | — | Google Gemini, used when no Anthropic key is set |
+| `GEMINI_MODEL` | | `gemini-3.1-flash-lite,…` | Comma-separated fallback chain (moves on when a model is overloaded or out of quota) |
 | `ARKO_MODEL` | | `claude-opus-5-5` | Any Claude model ID |
 | `PUBLIC_URL` | | `http://localhost:5173` | Where PayPal sends the payer back |
 | `MAX_ACTION_AMOUNT` | | `5000` | Policy limit for any single money movement |

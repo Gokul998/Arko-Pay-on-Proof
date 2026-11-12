@@ -11,8 +11,19 @@ export const FALLBACK: { betas: Anthropic.Beta.AnthropicBeta[]; fallbacks: "defa
   fallbacks: "default",
 };
 
-/** Thin wrapper for structured (schema-validated) Claude calls used by the specialised agents. */
-export class ClaudeStructured {
+/** Provider-neutral port for schema-validated LLM calls used by the specialised agents. */
+export interface StructuredLlm {
+  parse<S extends z.ZodType>(opts: {
+    system: string;
+    content: Anthropic.Beta.BetaContentBlockParam[];
+    schema: S;
+    effort: Effort;
+    maxTokens?: number;
+  }): Promise<z.infer<S>>;
+}
+
+/** Claude adapter for structured (schema-validated) calls. */
+export class ClaudeStructured implements StructuredLlm {
   constructor(
     readonly client: Anthropic,
     readonly model: string,

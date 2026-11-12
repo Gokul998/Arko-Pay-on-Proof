@@ -19,6 +19,8 @@ services:
       - key: PAYPAL_CLIENT_SECRET
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false # or leave empty and set GEMINI_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: ARKO_MODEL
         value: claude-opus-5-5

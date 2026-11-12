@@ -16,10 +16,10 @@ export function App() {
   const { view, go, deals, party, setParty, toasts } = useStore();
   const [chatOpen, setChatOpen] = useState(() => window.innerWidth >= 1280);
   const [navOpen, setNavOpen] = useState(false);
-  const [health, setHealth] = useState<{ paypal: string; claude: string; environment: string } | null>(null);
+  const [health, setHealth] = useState<{ paypal: string; claude: string; environment: string; aiProvider?: string | null; model?: string } | null>(null);
 
   useEffect(() => {
-    void api.health().then(setHealth).catch(() => setHealth(null));
+    void api.health().then((h) => setHealth(h as typeof health)).catch(() => setHealth(null));
   }, []);
 
   const nav = (
@@ -57,7 +57,7 @@ export function App() {
       {health && (
         <div className="mt-2 space-y-1 rounded-xl bg-slate-100 p-2.5 text-xs dark:bg-slate-800/60">
           <Dot ok={health.paypal === "configured"} label={`PayPal ${health.environment}`} />
-          <Dot ok={health.claude === "configured"} label="Claude agents" />
+          <Dot ok={health.claude === "configured"} label={health.aiProvider ? `AI agents · ${health.aiProvider === "gemini" ? "Gemini" : "Claude"}` : "AI agents"} />
         </div>
       )}
     </nav>

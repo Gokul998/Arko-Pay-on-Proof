@@ -13,6 +13,7 @@
     "@arko/paypal-client": "*",
     "@arko/paypal-mcp": "*",
     "@arko/shared": "*",
+    "@google/genai": "^3.2.0",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "express": "^5.1.0",
     "mammoth": "^1.13.0",

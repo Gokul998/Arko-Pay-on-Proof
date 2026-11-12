@@ -32,13 +32,14 @@ export function apiRouter(c: Container): Router {
   const aiLimit = rateLimit({ windowMs: 60_000, max: 20 });
   const p = (v: string | string[] | undefined) => String(v);
 
-  r.get("/health", handler(async (): Promise<HealthStatus & { mcpTools: unknown }> => {
+  r.get("/health", handler(async (): Promise<HealthStatus & { mcpTools: unknown; aiProvider: string | null }> => {
     const tools = await c.mcpTools().catch(() => []);
     return {
       ok: true,
       paypal: c.env.PAYPAL_CLIENT_ID ? "configured" : "missing",
-      claude: c.env.ANTHROPIC_API_KEY ? "configured" : "missing",
-      model: c.env.ARKO_MODEL,
+      claude: c.ai ? "configured" : "missing",
+      aiProvider: c.ai?.provider ?? null,
+      model: c.ai?.model ?? "",
       environment: c.env.PAYPAL_ENV,
       mcpTools: tools.map((t) => ({ name: t.name, title: t.title, annotations: t.annotations })),
     };
