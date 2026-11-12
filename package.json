@@ -1,0 +1,39 @@
+{
+  "name": "arko-pay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Arko Pay-on-Proof: AI escrow agents for freelance work, backed by PayPal",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w @arko/api\" \"npm run dev -w @arko/web\"",
+    "build": "npm run build -w @arko/web",
+    "start": "npm run start -w @arko/api",
+    "mcp": "npm run start -w @arko/paypal-mcp",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

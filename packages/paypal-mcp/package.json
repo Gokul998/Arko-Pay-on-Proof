@@ -1,0 +1,19 @@
+{
+  "name": "@arko/paypal-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing PayPal escrow tools (holds, captures, splits, refunds, payouts, receipts)",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "bin": { "arko-paypal-mcp": "./src/stdio.ts" },
+  "scripts": {
+    "start": "tsx src/stdio.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@arko/paypal-client": "*",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^4.1.0"
+  }
+}

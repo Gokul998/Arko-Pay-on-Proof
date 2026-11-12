@@ -1,0 +1,30 @@
+# One-click deploy on Render (Blueprint). Secrets are entered in the Render dashboard.
+services:
+  - type: web
+    name: arko-pay
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22.14.0"
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ARKO_MODEL
+        value: claude-opus-5-5
+      - key: PUBLIC_URL
+        sync: false # e.g. https://arko-pay.onrender.com — PayPal redirects the payer back here
+      - key: APP_SECRET
+        generateValue: true # signs the per-party deal keys
+      - key: MAX_ACTION_AMOUNT
+        value: "5000"
