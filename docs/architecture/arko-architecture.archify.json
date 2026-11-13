@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Arko Pay-on-Proof: end-to-end architecture (numbers follow one deal)",
+    "output": ".archify/architecture-arko-end-to-end-20261113-055453/arko-end-to-end.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "client", "type": "external", "icon": "person", "label": "Client (payer)", "sublabel": "browser · client key", "pos": [30, 300], "size": [150, 64] },
+    { "id": "freelancer", "type": "external", "icon": "briefcase", "label": "Freelancer (payee)", "sublabel": "browser · invite key", "pos": [30, 470], "size": [150, 64] },
+    { "id": "web", "type": "frontend", "label": "Arko web app", "sublabel": "React · deal room · state machine", "pos": [270, 300], "size": [170, 64] },
+    { "id": "sow", "type": "backend", "label": "SOW reader", "sublabel": "PDF · DOCX · scan · EML", "pos": [270, 470], "size": [170, 64] },
+    { "id": "api", "type": "backend", "label": "API · DealService", "sublabel": "key auth · state machine · policies", "pos": [540, 300], "size": [180, 260] },
+    { "id": "db", "type": "database", "label": "SQLite", "sublabel": "deals · actions · audit · proofs", "pos": [540, 660], "size": [180, 64] },
+    { "id": "contract", "type": "backend", "label": "Contract Agent", "sublabel": "SOW → milestones, DoD", "pos": [820, 70], "size": [210, 64] },
+    { "id": "reviewer", "type": "backend", "label": "Plan Reviewer", "sublabel": "readiness · issues", "pos": [820, 160], "size": [210, 64] },
+    { "id": "verifier", "type": "backend", "label": "Verifier Agent", "sublabel": "proof vs definition of done", "pos": [820, 250], "size": [210, 64] },
+    { "id": "mediator", "type": "backend", "label": "Mediator Agent", "sublabel": "fair split proposal", "pos": [820, 340], "size": [210, 64] },
+    { "id": "chat", "type": "backend", "label": "Arko chat", "sublabel": "tool use · proposes only", "pos": [820, 430], "size": [210, 64] },
+    { "id": "gw", "type": "security", "label": "Payments gateway", "sublabel": "approval gate · MCP client", "pos": [820, 560], "size": [210, 64] },
+    { "id": "mcp", "type": "backend", "label": "PayPal MCP server", "sublabel": "10 tools · idempotent writes", "pos": [1110, 430], "size": [190, 400] },
+    { "id": "desktop", "type": "external", "label": "Claude Desktop", "sublabel": "any MCP client", "pos": [1110, 920], "size": [190, 64] },
+    { "id": "checkout", "type": "cloud", "label": "PayPal Checkout", "sublabel": "payer approves hold", "pos": [1400, 300], "size": [180, 64] },
+    { "id": "orders", "type": "cloud", "label": "Orders v2", "sublabel": "AUTHORIZE · authorize", "pos": [1400, 450], "size": [180, 64] },
+    { "id": "payments", "type": "cloud", "label": "Payments v2", "sublabel": "capture · void · reauth", "pos": [1400, 550], "size": [180, 64] },
+    { "id": "invoicing", "type": "cloud", "label": "Invoicing v2", "sublabel": "receipt, paid", "pos": [1400, 650], "size": [180, 64] },
+    { "id": "payouts", "type": "cloud", "label": "Payouts v1", "sublabel": "team payouts", "pos": [1400, 750], "size": [180, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Users", "wraps": ["client", "freelancer"] },
+    { "kind": "region", "label": "Arko platform · one service on Render", "wraps": ["web", "sow", "api", "db", "contract", "reviewer", "verifier", "mediator", "chat", "gw", "mcp"] },
+    { "kind": "security-group", "label": "AI agents · Claude or Gemini", "wraps": ["contract", "reviewer", "verifier", "mediator", "chat"] },
+    { "kind": "region", "label": "PayPal sandbox", "wraps": ["checkout", "orders", "payments", "invoicing", "payouts"] }
+  ],
+  "connections": [
+    { "id": "s1", "from": "client", "to": "web", "label": "1 upload SOW", "variant": "emphasis" },
+    { "id": "s2", "from": "web", "to": "api", "label": "2 REST + SSE", "variant": "emphasis" },
+    { "id": "s3", "from": "api", "to": "sow", "label": "3 read file", "fromSide": "left", "toSide": "right" },
+    { "id": "s4", "from": "api", "to": "contract", "label": "4 split plan" },
+    { "id": "s5", "from": "api", "to": "reviewer", "label": "5 review" },
+    { "id": "s6", "from": "freelancer", "to": "web", "label": "6 accept vN · proof", "fromSide": "right", "toSide": "bottom" },
+    { "id": "s7", "from": "api", "to": "gw", "label": "7 fund / release", "variant": "security" },
+    { "id": "s8", "from": "gw", "to": "mcp", "label": "8 tools", "variant": "security" },
+    { "id": "s9", "from": "mcp", "to": "orders", "label": "9 hold" },
+    { "id": "s10", "from": "client", "to": "checkout", "label": "10 approve in PayPal", "variant": "dashed", "fromSide": "top", "toSide": "top", "via": [[105, 20], [1490, 20]] },
+    { "id": "s11", "from": "checkout", "to": "orders", "label": "11 approved", "fromSide": "bottom", "toSide": "top" },
+    { "id": "s12", "from": "api", "to": "verifier", "label": "12 verify" },
+    { "id": "s13", "from": "mcp", "to": "payments", "label": "13 capture" },
+    { "id": "s14", "from": "api", "to": "mediator", "label": "14 mediate", "variant": "dashed" },
+    { "id": "s15", "from": "mcp", "to": "invoicing", "label": "15 receipt" },
+    { "id": "s16", "from": "mcp", "to": "payouts", "label": "16 payouts", "variant": "dashed" },
+    { "id": "s17", "from": "api", "to": "chat", "label": "17 chat" },
+    { "id": "s18", "from": "chat", "to": "mcp", "label": "18 read-only", "variant": "dashed" },
+    { "id": "s19", "from": "desktop", "to": "mcp", "label": "19 MCP stdio", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "s20", "from": "api", "to": "db", "label": "state + audit", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Typical deal (numbers)", "items": [
+      "1–5 Client uploads a SOW; the Contract Agent splits it into milestones (v1); the Plan Reviewer audits it",
+      "6 Both parties edit and accept the same plan version; the freelancer later uploads proof",
+      "7–11 Funding: API → payments gateway → MCP → Orders v2 AUTHORIZE; the client approves in PayPal Checkout",
+      "12 Verifier scores proof against the definition of done",
+      "7, 13, 15 Release: policy checks + client approval → capture → receipt invoice",
+      "14 Dispute: Mediator proposes a split → partial capture with final_capture",
+      "17–18 Arko chat reads live PayPal status; it can only propose actions"
+    ] },
+    { "dot": "rose", "title": "Controls", "items": [
+      "Acting party derived from HMAC-signed keys",
+      "AI never moves money: approval gate re-checks policies",
+      "Deterministic PayPal-Request-Id per operation",
+      "Versioned plan, optimistic concurrency, full audit trail"
+    ] },
+    { "dot": "emerald", "title": "Runs on", "items": [
+      "TypeScript · Express 5 · React 19 · node:sqlite",
+      "Claude or Gemini behind one StructuredLlm port",
+      "PayPal sandbox: Orders v2, Payments v2, Invoicing v2, Payouts"
+    ] }
+  ]
+}

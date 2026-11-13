@@ -93,14 +93,43 @@ Marketplace escrow handles this, but only for work done on that platform, and th
 Settlement arithmetic for a dispute, where $A$ is the held amount and $p$ the accepted freelancer share:
 
 $$
-\text{capture} = \operatorname{round}_{\text{cents}}(A \cdot p), \qquad \text{returned to client} = A - \text{capture}
+\text{capture} = \mathrm{round}_{\text{cents}}(A \cdot p), \qquad \text{returned to client} = A - \text{capture}
 $$
 
 The split is computed in integer cents, so the two parts always add up to $A$.
 
 ## 3. Architecture
 
-### 3.1 System context
+### 3.1 End-to-end flow
+
+![Arko Pay-on-Proof end-to-end architecture](docs/architecture/arko-architecture.png)
+
+The numbers follow a single deal from start to finish:
+
+| # | Step | From → To |
+|---|---|---|
+| 1 | Client uploads the SOW | Client → web app |
+| 2 | Every UI action is a REST call (chat streams over SSE), signed with the party's key | Web app → API |
+| 3 | The uploaded document is converted into model input (text, or native PDF/image) | API → SOW reader |
+| 4 | The SOW is split into milestones with deliverables and a definition of done (plan v1) | API → Contract Agent |
+| 5 | The plan is audited for untestable criteria, wrong totals and bad dates | API → Plan Reviewer |
+| 6 | Both parties edit and accept the same version; later, the freelancer uploads proof | Freelancer → web app |
+| 7 | Funding and release requests go through the payments gateway, where policies run and money moves wait for approval | API → payments gateway |
+| 8 | The gateway calls PayPal only through MCP tools | Gateway → PayPal MCP server |
+| 9 | An Orders v2 order is created with intent `AUTHORIZE` | MCP server → Orders v2 |
+| 10 | The client approves the hold in PayPal Checkout | Client → PayPal Checkout |
+| 11 | Arko authorizes the approved order, and the funds are held | Checkout → Orders v2 |
+| 12 | Proof is scored against the definition of done | API → Verifier Agent |
+| 13 | After client approval, the authorization is captured (full, or partial for a split) | MCP server → Payments v2 |
+| 14 | A dispute is mediated into a proposed split | API → Mediator Agent |
+| 15 | A receipt invoice is created and marked paid | MCP server → Invoicing v2 |
+| 16 | Optional payouts to sub-contractors | MCP server → Payouts v1 |
+| 17–18 | Arko chat answers from live data and reads PayPal status (read-only tools) | API → chat → MCP server |
+| 19 | External agents use the same PayPal tools over stdio | Claude Desktop → MCP server |
+
+An interactive version of this diagram, with zoom, focus and export, is in [`docs/architecture/arko-architecture.html`](docs/architecture/arko-architecture.html). Download it and open it in a browser. Its Archify source is [`arko-architecture.archify.json`](docs/architecture/arko-architecture.archify.json).
+
+### 3.2 System context
 
 ```mermaid
 flowchart LR
@@ -125,7 +154,7 @@ flowchart LR
 
 The API and the web app ship as one service. In production the API serves the built SPA from the same origin, so the PayPal return URL needs no CORS configuration.
 
-### 3.2 Layering
+### 3.3 Layering
 
 The API follows a ports-and-adapters layout. Dependencies only point inward.
 
@@ -137,7 +166,7 @@ The API follows a ports-and-adapters layout. Dependencies only point inward.
 | HTTP | `apps/api/src/http` | Routes, zod validation, key authentication, error mapping, rate limiting, SSE | Application |
 | Composition root | `apps/api/src/config/container.ts` | Wires concrete adapters to ports, chooses the AI provider | Everything |
 
-### 3.3 Funding and release sequence
+### 3.4 Funding and release sequence
 
 ```mermaid
 sequenceDiagram
