@@ -12,6 +12,35 @@ Milestone escrow for freelance work, built on PayPal authorizations, with AI age
 
 ---
 
+## Quick start
+
+You need Node.js 22.13+, PayPal sandbox app credentials, and an Anthropic or Gemini API key. Section 13 explains how to get each one.
+
+```bash
+git clone https://github.com/Gokul998/Arko-Pay-on-Proof.git
+cd Arko-Pay-on-Proof
+cp .env.example .env
+```
+
+Edit `.env` and set at least:
+
+```ini
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+GEMINI_API_KEY=...        # or ANTHROPIC_API_KEY=...
+```
+
+Then:
+
+```bash
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>, upload `docs/samples/sample-sow.md`, and follow the walkthrough in section 13.4. Once both keys are set, the PayPal and AI indicators at the bottom of the sidebar turn green.
+
+---
+
 ## Contents
 
 1. [Why this exists](#1-why-this-exists)
@@ -692,6 +721,22 @@ The sidebar footer shows a green dot for PayPal and for the AI provider once bot
 5. As Client, **Release** and then **Approve & pay**. The capture id is shown on the milestone.
 6. Try the other paths: fund milestone 2, raise a dispute from both sides, **Ask the Mediator**, accept the split as both parties and execute it. On milestone 3, request an extension as Freelancer and approve it as Client.
 7. Open **Workflow** (state machine and lanes), **Escrow ledger**, **Audit trail**, and ask Arko chat what's held in escrow.
+
+### 13.5 Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Sidebar shows **PayPal sandbox: not configured** | `PAYPAL_CLIENT_ID` or `PAYPAL_CLIENT_SECRET` is empty. Restart `npm run dev` after editing `.env`, since environment variables are read at startup. |
+| Sidebar shows **AI agents: not configured** | Set `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`, then restart. |
+| `npm install` warns about install scripts, and `tsx` or `vite` fail to start | Some npm versions block `esbuild`'s postinstall. Run `npm install-scripts approve esbuild && npm rebuild esbuild`. |
+| `Error: Cannot find module 'node:sqlite'` | Node is older than 22.13. Upgrade Node. |
+| PayPal checkout fails after login, or the payment is declined | Buyer and merchant sandbox accounts are both registered in India. Create a **US** Personal sandbox account and use it as the buyer. |
+| `CURRENCY_NOT_SUPPORTED` | Use USD, EUR, GBP, AUD or CAD. INR is not supported for this flow. |
+| Release blocked by **Below per-action limit** | The amount is above `MAX_ACTION_AMOUNT` (default 5000). Raise it in `.env` if that's intended. |
+| Receipt invoice missing, and the audit trail shows `NOT_AUTHORIZED` | Enable **Invoicing** in the PayPal app's Features. The capture itself is unaffected. |
+| Gemini errors `503 UNAVAILABLE` or `404 … no longer available` | The model is overloaded or retired for new keys. Put a working model first in `GEMINI_MODEL`; the chain falls through automatically. |
+| A deal URL shows **Loading deal…** forever | Your browser doesn't hold a key for that deal. Open it from the creator's **Invite** link (`/?invite=…`). |
+| Port 5173 or 8787 already in use | Stop the other process, or change `API_PORT` (the API) or Vite's `--port` (the web app). |
 
 ## 14. Configuration reference
 
